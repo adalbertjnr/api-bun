@@ -17,7 +17,7 @@ type Account struct {
 	ID            int       `bun:",pk,autoincrement" json:"id"`
 	FirstName     string    `json:"first_name"`
 	LastName      string    `json:"last_name"`
-	Number        int64     `json:"number"`
+	Number        int64     `bun:",unique" json:"number"`
 	Balance       int64     `json:"balance"`
 	CreatedAt     time.Time `json:"createdAt"`
 }
@@ -26,7 +26,7 @@ func NewAccount(fn, ln string) *Account {
 	return &Account{
 		FirstName: fn,
 		LastName:  ln,
-		Number:    int64(rand.Intn(100000)),
+		Number:    int64(rand.Intn(10000)),
 		CreatedAt: time.Now().UTC(),
 	}
 }
