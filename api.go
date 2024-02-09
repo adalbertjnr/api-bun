@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 )
@@ -21,10 +22,11 @@ func NewAPIServer(listenAddress string, store Storager) *APIServer {
 	}
 }
 
+// router
 func (s *APIServer) Run() {
 	router := mux.NewRouter()
 	router.HandleFunc("/account", makeHTTPHandler(s.handleAccount))
-	router.HandleFunc("/account/{id}", makeHTTPHandler(s.handleGetAccount))
+	router.HandleFunc("/account/{id}", makeHTTPHandler(s.handleGetAccountById))
 
 	fmt.Println("running on port:", s.listenAddress)
 	if err := http.ListenAndServe(s.listenAddress, router); err != nil {
@@ -32,6 +34,7 @@ func (s *APIServer) Run() {
 	}
 }
 
+// handle account ep
 func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case http.MethodGet:
@@ -47,10 +50,26 @@ func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error 
 	}
 }
 
+// account eps
+func (s *APIServer) handleGetAccountById(w http.ResponseWriter, r *http.Request) error {
+	idVars := mux.Vars(r)["id"]
+	idVarsInt, err := strconv.Atoi(idVars)
+	if err != nil {
+		return err
+	}
+	acc, err := s.store.GetAccountById(idVarsInt)
+	if err != nil {
+		return err
+	}
+	return WriteJSONResponse(w, http.StatusOK, acc)
+}
+
 func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
-	vars := mux.Vars(r)["id"]
-	fmt.Println(vars)
-	return WriteJSONResponse(w, http.StatusOK, &Account{})
+	accounts, err := s.store.GetAccounts()
+	if err != nil {
+		return err
+	}
+	return WriteJSONResponse(w, http.StatusOK, accounts)
 }
 
 func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
@@ -73,6 +92,7 @@ func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) error
 	return nil
 }
 
+// helpers
 func WriteJSONResponse(w http.ResponseWriter, status int, v any) error {
 	w.WriteHeader(status)
 	w.Header().Add("Content-Type", "application/json")

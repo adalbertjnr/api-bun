@@ -15,6 +15,7 @@ type Storager interface {
 	DeleteAccount(id int) error
 	UpdateAccount(account *Account) error
 	GetAccountById(id int) (*Account, error)
+	GetAccounts() ([]*Account, error)
 	Init() error
 }
 
@@ -73,6 +74,22 @@ func (s *PostgresStore) UpdateAccount(account *Account) error {
 	return nil
 }
 
+func (s *PostgresStore) GetAccounts() ([]*Account, error) {
+	var accounts []*Account
+	err := s.db.NewSelect().Model(&accounts).Scan(s.ctx)
+	if err != nil {
+		return nil, err
+	}
+	return accounts, nil
+}
+
 func (s *PostgresStore) GetAccountById(id int) (*Account, error) {
-	return nil, nil
+	filteredAccountById := new(Account)
+	if err := s.db.NewSelect().
+		Model(filteredAccountById).
+		Where("id = ?", id).
+		Scan(s.ctx); err != nil {
+		return nil, err
+	}
+	return filteredAccountById, nil
 }
