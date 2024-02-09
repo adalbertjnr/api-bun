@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:alpine3.19
+    container_name: "gobank"
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=gobank
+    networks:
+      - api-gobank
+    volumes:
+      - api-gobank:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - 8000:80
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=user@user.com
+      - PGADMIN_DEFAULT_PASSWORD=user
+    networks:
+      - api-gobank
+    depends_on:
+      - db
+
+volumes:
+  api-gobank: {}
+
+networks:
+  api-gobank:
+    driver: bridge
