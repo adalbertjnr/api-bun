@@ -1,10 +1,15 @@
 package types
 
 import (
+	"errors"
 	"math/rand"
 	"time"
 
 	"github.com/uptrace/bun"
+)
+
+var (
+	ErrAccessDenied = errors.New("access denied")
 )
 
 type TransferRequest struct {
