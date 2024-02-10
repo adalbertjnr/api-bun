@@ -2,8 +2,7 @@ package main
 
 import (
 	"api/api"
-	"api/internal/util"
-	"api/jwt"
+	midd "api/jwt"
 	"api/logs"
 	"api/store"
 	"fmt"
@@ -12,16 +11,6 @@ import (
 
 	"github.com/gorilla/mux"
 )
-
-type apiFunc func(w http.ResponseWriter, r *http.Request) error
-
-func makeHTTPHandler(fn apiFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if err := fn(w, r); err != nil {
-			util.WriteJSONResponse(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-		}
-	}
-}
 
 func main() {
 	var (
@@ -38,12 +27,12 @@ func main() {
 	storeSvc = logs.NewLogMiddleware(storeSvc)
 
 	s := api.NewAPIServer(":3000", storeSvc)
-	fmt.Println("running on port:", s.ListenAddress)
 	router := mux.NewRouter()
-	router.HandleFunc("/account", makeHTTPHandler(s.HandleAccount))
-	router.HandleFunc("/account/{id}", jwt.JWTAuthentication(makeHTTPHandler(s.HandleById)))
-	router.HandleFunc("/transfer", makeHTTPHandler(s.HandleTransfer))
+	router.HandleFunc("/account", s.MakeHTTPHandler(s.HandleAccount))
+	router.HandleFunc("/account/{id}", midd.JWTAuthentication(s.MakeHTTPHandler(s.HandleById), s.Store))
+	router.HandleFunc("/transfer", s.MakeHTTPHandler(s.HandleTransfer))
 
+	fmt.Println("the server is running on port", s.ListenAddress)
 	if err := http.ListenAndServe(s.ListenAddress, router); err != nil {
 		log.Fatal(err)
 	}
