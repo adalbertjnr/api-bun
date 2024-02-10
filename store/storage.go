@@ -1,9 +1,11 @@
-package main
+package store
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
+
+	"api/types"
 
 	_ "github.com/lib/pq"
 	"github.com/uptrace/bun"
@@ -11,11 +13,11 @@ import (
 )
 
 type Storager interface {
-	CreateAccount(account *Account) error
+	CreateAccount(account *types.Account) error
 	DeleteAccount(id int) error
-	UpdateAccount(account *Account) error
-	GetAccountById(id int) (*Account, error)
-	GetAccounts() ([]*Account, error)
+	UpdateAccount(account *types.Account) error
+	GetAccountById(id int) (*types.Account, error)
+	GetAccounts() ([]*types.Account, error)
 	Init() error
 }
 
@@ -48,14 +50,14 @@ func (s *PostgresStore) Init() error {
 }
 
 func (s *PostgresStore) CreateAccountTable() error {
-	_, err := s.db.NewCreateTable().Model((*Account)(nil)).IfNotExists().Exec(s.ctx)
+	_, err := s.db.NewCreateTable().Model((*types.Account)(nil)).IfNotExists().Exec(s.ctx)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *PostgresStore) CreateAccount(account *Account) error {
+func (s *PostgresStore) CreateAccount(account *types.Account) error {
 	_, err := s.db.NewInsert().
 		Model(account).
 		Exec(s.ctx)
@@ -67,29 +69,36 @@ func (s *PostgresStore) CreateAccount(account *Account) error {
 }
 
 func (s *PostgresStore) DeleteAccount(id int) error {
+	_, err := s.db.NewDelete().
+		Model(&types.Account{}).
+		Where("id = ?", id).
+		Exec(s.ctx)
+	if err != nil {
+		return fmt.Errorf("error deleting user form the database")
+	}
 	return nil
 }
 
-func (s *PostgresStore) UpdateAccount(account *Account) error {
+func (s *PostgresStore) UpdateAccount(account *types.Account) error {
 	return nil
 }
 
-func (s *PostgresStore) GetAccounts() ([]*Account, error) {
-	var accounts []*Account
+func (s *PostgresStore) GetAccounts() ([]*types.Account, error) {
+	var accounts []*types.Account
 	err := s.db.NewSelect().Model(&accounts).Scan(s.ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("not able to query the accounts")
 	}
 	return accounts, nil
 }
 
-func (s *PostgresStore) GetAccountById(id int) (*Account, error) {
-	filteredAccountById := new(Account)
+func (s *PostgresStore) GetAccountById(id int) (*types.Account, error) {
+	filteredAccountById := new(types.Account)
 	if err := s.db.NewSelect().
 		Model(filteredAccountById).
 		Where("id = ?", id).
 		Scan(s.ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("account %d not found", id)
 	}
 	return filteredAccountById, nil
 }

@@ -1,4 +1,4 @@
-package main
+package types
 
 import (
 	"math/rand"
@@ -6,6 +6,11 @@ import (
 
 	"github.com/uptrace/bun"
 )
+
+type TransferRequest struct {
+	DestAccount int `json:"dest_account"`
+	Amount      int `json:"amount"`
+}
 
 type CreateAccoutRequest struct {
 	FirstName string `json:"first_name"`

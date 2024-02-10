@@ -1,17 +1,19 @@
-package main
+package logs
 
 import (
+	"api/store"
+	"api/types"
 	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
 type LogMiddleware struct {
-	next Storager
+	next store.Storager
 	log  *logrus.Logger
 }
 
-func NewLogMiddleware(next Storager) *LogMiddleware {
+func NewLogMiddleware(next store.Storager) *LogMiddleware {
 	log := logrus.New()
 	log.Formatter = new(logrus.JSONFormatter)
 	return &LogMiddleware{
@@ -20,7 +22,7 @@ func NewLogMiddleware(next Storager) *LogMiddleware {
 	}
 }
 
-func (l *LogMiddleware) CreateAccount(account *Account) (err error) {
+func (l *LogMiddleware) CreateAccount(account *types.Account) (err error) {
 	defer func() {
 		l.log.WithFields(logrus.Fields{
 			"ID":        account.ID,
@@ -44,7 +46,7 @@ func (l *LogMiddleware) DeleteAccount(id int) (err error) {
 	return l.next.DeleteAccount(id)
 }
 
-func (l *LogMiddleware) UpdateAccount(account *Account) (err error) {
+func (l *LogMiddleware) UpdateAccount(account *types.Account) (err error) {
 	defer func() {
 		logrus.WithFields(logrus.Fields{
 			"ID":        account.ID,
@@ -58,7 +60,7 @@ func (l *LogMiddleware) UpdateAccount(account *Account) (err error) {
 	return l.next.CreateAccount(account)
 }
 
-func (l *LogMiddleware) GetAccountById(id int) (account *Account, err error) {
+func (l *LogMiddleware) GetAccountById(id int) (account *types.Account, err error) {
 	var (
 		fn        string
 		ln        string
@@ -91,7 +93,7 @@ func (l *LogMiddleware) Init() (err error) {
 	return l.next.Init()
 }
 
-func (l *LogMiddleware) GetAccounts() (accounts []*Account, err error) {
+func (l *LogMiddleware) GetAccounts() (accounts []*types.Account, err error) {
 	defer func() {
 		logrus.WithFields(logrus.Fields{
 			"err": err,
