@@ -3,7 +3,6 @@ package logs
 import (
 	"api/store"
 	"api/types"
-	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -31,7 +30,7 @@ func (l *LogMiddleware) CreateAccount(account *types.Account) (err error) {
 			"Number":    account.Number,
 			"CreatedAt": account.CreatedAt,
 			"err":       err,
-		}).Info("newly created account")
+		}).Info("new account created")
 	}()
 	return l.next.CreateAccount(account)
 }
@@ -61,27 +60,20 @@ func (l *LogMiddleware) UpdateAccount(account *types.Account) (err error) {
 }
 
 func (l *LogMiddleware) GetAccountById(id int) (account *types.Account, err error) {
-	var (
-		fn        string
-		ln        string
-		number    int64
-		createdAt time.Time
-	)
-	if account != nil {
-		fn = account.FirstName
-		ln = account.LastName
-		number = account.Number
-		createdAt = account.CreatedAt
-	}
+
 	defer func() {
-		l.log.WithFields(logrus.Fields{
-			"ID":        id,
-			"FirstName": fn,
-			"LastName":  ln,
-			"Number":    number,
-			"CreatedAt": createdAt,
-			"err":       err,
-		}).Infof("filtering account by id %d", id)
+		if account != nil {
+			l.log.WithFields(logrus.Fields{
+				"ID":        id,
+				"FirstName": account.FirstName,
+				"LastName":  account.LastName,
+				"Number":    account.Number,
+				"CreatedAt": account.CreatedAt,
+				"err":       err,
+			}).Infof("filtering account by id %d", id)
+		} else {
+			l.log.WithField("ID", id).Infof("id %d not found in database", id)
+		}
 	}()
 	return l.next.GetAccountById(id)
 }
