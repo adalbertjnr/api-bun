@@ -30,7 +30,7 @@ func JWTAuthentication(handlerFnWithJWT http.HandlerFunc, s store.Storager) http
 			return
 		}
 		claims := token.Claims.(jwt.MapClaims)
-		if account.Number != claims["accountNumber"] {
+		if account.Number != int64(claims["accountNumber"].(float64)) {
 			util.WriteJSONResponse(w, http.StatusForbidden, util.NewError(types.ErrAccessDenied))
 			return
 		}
