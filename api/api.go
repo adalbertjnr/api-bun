@@ -2,9 +2,11 @@ package api
 
 import (
 	"api/internal/util"
+	midd "api/jwt"
 	"api/store"
 	"api/types"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -60,7 +62,18 @@ func (s *APIServer) HandleLogin(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	return util.WriteJSONResponse(w, http.StatusAccepted, acc)
+	if !types.BcryptValidator(acc.EncryptedPassword, req.Password) {
+		return util.WriteJSONResponse(w, http.StatusBadRequest, util.NewError(errors.New("not allowed")))
+	}
+	token, err := midd.NewJWTToken(acc)
+	if err != nil {
+		return err
+	}
+	resp := types.LoginResponse{
+		Account: *acc,
+		Token:   token,
+	}
+	return util.WriteJSONResponse(w, http.StatusAccepted, resp)
 }
 func (s *APIServer) HandleGetAccountById(w http.ResponseWriter, r *http.Request) error {
 	idVars := mux.Vars(r)["id"]
