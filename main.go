@@ -17,7 +17,12 @@ func main() {
 		storeSvc store.Storager
 		err      error
 	)
-	storeSvc, err = store.NewPostgresStore()
+	db, err := store.LoadDBWithBunClient()
+	if err != nil {
+		panic(err.Error())
+	}
+
+	storeSvc, err = store.NewPostgresStore(db)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,6 +33,7 @@ func main() {
 
 	s := api.NewAPIServer(":3000", storeSvc)
 	router := mux.NewRouter()
+	router.HandleFunc("/login", s.MakeHTTPHandler(s.HandleLogin))
 	router.HandleFunc("/account", s.MakeHTTPHandler(s.HandleAccount))
 	router.HandleFunc("/account/{id}", midd.JWTAuthentication(s.MakeHTTPHandler(s.HandleById), s.Store))
 	router.HandleFunc("/transfer", s.MakeHTTPHandler(s.HandleTransfer))
