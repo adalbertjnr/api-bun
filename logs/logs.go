@@ -77,7 +77,23 @@ func (l *LogMiddleware) GetAccountById(id int) (account *types.Account, err erro
 	}()
 	return l.next.GetAccountById(id)
 }
-
+func (l *LogMiddleware) GetAccountByNumber(id int) (account *types.Account, err error) {
+	defer func() {
+		if account != nil {
+			l.log.WithFields(logrus.Fields{
+				"ID":        id,
+				"FirstName": account.FirstName,
+				"LastName":  account.LastName,
+				"Number":    account.Number,
+				"CreatedAt": account.CreatedAt,
+				"err":       err,
+			}).Infof("filtering account number %d", id)
+		} else {
+			l.log.WithField("ID", id).Infof("account number %d not found in database", id)
+		}
+	}()
+	return l.next.GetAccountByNumber(id)
+}
 func (l *LogMiddleware) Init() (err error) {
 	logrus.WithFields(logrus.Fields{
 		"err": err,
