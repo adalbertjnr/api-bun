@@ -2,14 +2,12 @@ package store
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"api/types"
 
 	_ "github.com/lib/pq"
 	"github.com/uptrace/bun"
-	"github.com/uptrace/bun/dialect/pgdialect"
 )
 
 type Storager interface {
@@ -18,6 +16,7 @@ type Storager interface {
 	UpdateAccount(account *types.Account) error
 	GetAccountById(id int) (*types.Account, error)
 	GetAccounts() ([]*types.Account, error)
+	GetAccountByNumber(id int) (*types.Account, error)
 	Init() error
 }
 
@@ -26,16 +25,8 @@ type PostgresStore struct {
 	ctx context.Context
 }
 
-func NewPostgresStore() (*PostgresStore, error) {
-	connStr := "user=postgres dbname=postgres password=gobank sslmode=disable"
-	sqldb, err := sql.Open("postgres", connStr)
-	if err != nil {
-		return nil, err
-	}
-	if err := sqldb.Ping(); err != nil {
-		return nil, err
-	}
-	db := bun.NewDB(sqldb, pgdialect.New())
+func NewPostgresStore(db *bun.DB) (*PostgresStore, error) {
+
 	return &PostgresStore{
 		db:  db,
 		ctx: context.TODO(),
@@ -77,6 +68,18 @@ func (s *PostgresStore) DeleteAccount(id int) error {
 		return fmt.Errorf("error deleting user form the database")
 	}
 	return nil
+}
+
+func (s *PostgresStore) GetAccountByNumber(id int) (*types.Account, error) {
+	var account types.Account
+	err := s.db.NewSelect().
+		Model(&account).
+		Where("number = ?", id).
+		Scan(s.ctx)
+	if err != nil {
+		return nil, fmt.Errorf("account not found by number")
+	}
+	return &account, nil
 }
 
 func (s *PostgresStore) UpdateAccount(account *types.Account) error {
