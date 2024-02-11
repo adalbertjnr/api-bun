@@ -14,6 +14,11 @@ var (
 	ErrMethodNotAllowed = errors.New("method not allowed")
 )
 
+type LoginResponse struct {
+	Account Account `json:"account"`
+	Token   string  `json:"token"`
+}
+
 type LoginParams struct {
 	Number   int    `json:"number"`
 	Password string `json:"password"`
@@ -53,4 +58,8 @@ func NewAccount(fn, ln, password string) (*Account, error) {
 		Number:            int64(rand.Intn(10000)),
 		CreatedAt:         time.Now().UTC(),
 	}, nil
+}
+
+func BcryptValidator(hashedPw, pw string) bool {
+	return bcrypt.CompareHashAndPassword([]byte(hashedPw), []byte(pw)) == nil
 }
