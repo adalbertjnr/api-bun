@@ -14,13 +14,13 @@ import (
 
 type APIServer struct {
 	ListenAddress string
-	store         store.Storager
+	Store         store.Storager
 }
 
-func NewAPIServer(listenAddress string, store store.Storager) *APIServer {
+func NewAPIServer(listenAddress string, Store store.Storager) *APIServer {
 	return &APIServer{
 		ListenAddress: listenAddress,
-		store:         store,
+		Store:         Store,
 	}
 }
 
@@ -48,13 +48,27 @@ func (s *APIServer) HandleById(w http.ResponseWriter, r *http.Request) error {
 	}
 }
 
+func (s *APIServer) HandleLogin(w http.ResponseWriter, r *http.Request) error {
+	if r.Method != http.MethodPost {
+		return util.WriteJSONResponse(w, http.StatusBadRequest, util.NewError(types.ErrMethodNotAllowed))
+	}
+	req := new(types.LoginParams)
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		return err
+	}
+	acc, err := s.Store.GetAccountByNumber(req.Number)
+	if err != nil {
+		return err
+	}
+	return util.WriteJSONResponse(w, http.StatusAccepted, acc)
+}
 func (s *APIServer) HandleGetAccountById(w http.ResponseWriter, r *http.Request) error {
 	idVars := mux.Vars(r)["id"]
 	idVarsInt, err := strconv.Atoi(idVars)
 	if err != nil {
 		return err
 	}
-	acc, err := s.store.GetAccountById(idVarsInt)
+	acc, err := s.Store.GetAccountById(idVarsInt)
 	if err != nil {
 		return err
 	}
@@ -66,14 +80,14 @@ func (s *APIServer) HandleDeleteAccountById(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		return err
 	}
-	if err := s.store.DeleteAccount(idVarsInt); err != nil {
+	if err := s.Store.DeleteAccount(idVarsInt); err != nil {
 		return err
 	}
 	return util.WriteJSONResponse(w, http.StatusAccepted, map[string]int{"deleted user id": idVarsInt})
 }
 
 func (s *APIServer) HandleGetAccount(w http.ResponseWriter, r *http.Request) error {
-	accounts, err := s.store.GetAccounts()
+	accounts, err := s.Store.GetAccounts()
 	if err != nil {
 		return err
 	}
@@ -87,10 +101,14 @@ func (s *APIServer) HandleCreateAccount(w http.ResponseWriter, r *http.Request) 
 	}
 	defer r.Body.Close()
 
-	newAccount := types.NewAccount(accountParams.FirstName, accountParams.LastName)
-	if err := s.store.CreateAccount(newAccount); err != nil {
+	newAccount, err := types.NewAccount(accountParams.FirstName, accountParams.LastName, accountParams.Password)
+	if err != nil {
 		return err
 	}
+	if err := s.Store.CreateAccount(newAccount); err != nil {
+		return err
+	}
+
 	return util.WriteJSONResponse(w, http.StatusOK, newAccount)
 }
 
@@ -101,4 +119,14 @@ func (s *APIServer) HandleTransfer(w http.ResponseWriter, r *http.Request) error
 	}
 	defer r.Body.Close()
 	return util.WriteJSONResponse(w, http.StatusOK, transferReq)
+}
+
+type apiFunc func(w http.ResponseWriter, r *http.Request) error
+
+func (s *APIServer) MakeHTTPHandler(fn apiFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := fn(w, r); err != nil {
+			util.WriteJSONResponse(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		}
+	}
 }
